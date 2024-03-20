@@ -18,27 +18,44 @@ contract Wallet is IWallet {
 
     uint256 public nonce;
     address[] public owners;
+    address public entryPoint;
 
-    constructor(address[] memory _owners) {
-        owners = _owners;
+    modifier onlyOwner() {
+        _onlyOwner();
+        _;
     }
+
+    modifier requireFromEntryPointOrOwner() {
+        _requireFromEntryPointOrOwner();
+        _;
+    }
+
+    constructor(address[] memory _owners, address _entryPoint) {
+        owners = _owners;
+        entryPoint = _entryPoint;
+    }
+
+    /// Modifiers
+
+    function _onlyOwner() internal view {
+        //directly from EOA owner, or through the account itself (which gets redirected through execute())
+        require(msg.sender == owner || msg.sender == address(this), "only owner");
+    }
+
+    function _requireFromEntryPointOrOwner() internal view {
+        require(msg.sender == address(entryPoint()) || msg.sender == owner, "account: not Owner or EntryPoint");
+    }
+
+    /// Functions
 
     function getNonce() external view returns (uint256) {
         return nonce;
     }
 
-    /// Wraps the executeOp function to return the gas spent to the caller
-    /// Makes it easier to track gas spend across all points where we could revert
-    function executeOp(UserOperation memory op) external {
-        uint256 gasBefore = gasleft();
-        _executeOp(op);
-        uint256 gasSpent = gasBefore - gasleft();
-        _returnGasSpent(gasSpent);
-    }
 
 
-    function _executeOp(UserOperation memory op) internal {
-        bool verified = false;
+    function validateOp(UserOperation memory op) external returns (bool) {
+       bool verified = false;
         bytes32 hash = keccak256(abi.encodePacked(op.to, op.value, op.data, op.gas, op.nonce));
 
         // if it's a 721 transfer, we need all the owners to sign
@@ -66,9 +83,11 @@ contract Wallet is IWallet {
                 }
             }
         }
+        return verified;
+    }
 
-        require(verified, "Wallet: signatures invalid outer.");
-
+    /// Only allow the owner or the trusted entry point to execute operations
+    function executeOp(UserOperation memory op) external _requireFromEntryPointOrOwner() {
         // check to make sure nonce has not been used
         if (op.nonce < nonce) {
             revert("Wallet: nonce too low");

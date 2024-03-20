@@ -12,5 +12,6 @@ interface IWallet {
         uint256 nonce;
     }
 
+    function validateOp(UserOperation memory op) external returns (bool);
     function executeOp(UserOperation memory op) external;
 }
