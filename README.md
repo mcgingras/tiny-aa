@@ -17,3 +17,7 @@ In part 1, an EOA that we controlled was calling the `executeOp` function and pa
 The role of the executor is to call the `executeOp` function for given userOps. However, doing so costs gas. In part 1, it was okay that the external EOA was paying for gas, since it was an account we owned and we were paying gas for our own transactions. But when we introduce a 3rd party, they likely will not want to execute these ops for free.
 
 The new plan is that the wallet contract will hold some ETH, and as part of the `executeOp` call we will calculate how much gas we spent, and send it back to the caller to compensate them for any gas they used. (how does the wallet get ETH?)
+
+### Part 2a:
+
+We are prone to an attack by a griefer. Since the executeOp function both handles validate + execution, and we are refunding gas no matter what, we are prone to an attack by a griefer that could submit ops that are invalid, but are still "executed" in the sense that we are able to call executeOp and run them (but have them fail). Yet, theses ops are still draining our balance, so it's faulty. Maybe a bundler could expose an attack vector here where they are able to suck up all the gas from a bunch of wallets by calling dummy userOps with insanely high gas fees. We need to protect against this.
