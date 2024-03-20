@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 interface IWallet {
     struct UserOperation {
+        address sender;
         address to;
         uint256 value;
         bytes data;

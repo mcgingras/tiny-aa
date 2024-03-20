@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import {console} from "forge-std/Test.sol";
 import "./IWallet.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -29,7 +28,7 @@ contract Wallet is IWallet {
     }
 
 
-    function executeOp(UserOperation memory op) external override {
+    function executeOp(UserOperation memory op) external {
         bool verified = false;
         bytes32 hash = keccak256(abi.encodePacked(op.to, op.value, op.data, op.gas, op.nonce));
 

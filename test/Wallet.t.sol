@@ -26,7 +26,7 @@ contract DemoNFT is ERC721 {
     }
 }
 
-// 1. Not sure what we are supposed to do with the gas parameter
+
 contract WalletTest is Test {
     Wallet public wallet;
     DemoNFT public demoNFT;
@@ -60,7 +60,6 @@ contract WalletTest is Test {
         return abi.encodePacked(r, s, v);
     }
 
-
     function test_ExecuteOpSuccessERC20() public {
         address to = address(demoERC20);
         uint256 value = 0;
@@ -71,7 +70,7 @@ contract WalletTest is Test {
         uint256 nonce1 = wallet.getNonce();
         bytes32 digest1 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce1)));
         bytes memory signature1 = getSignature(signer1PK, digest1);
-        IWallet.UserOperation memory op1 = IWallet.UserOperation(to, value, data, gas, signature1, nonce1);
+        IWallet.UserOperation memory op1 = IWallet.UserOperation(address(wallet), to, value, data, gas, signature1, nonce1);
         wallet.executeOp(op1);
         assertEq(demoERC20.balanceOf(recipient), 1);
         assertEq(demoERC20.balanceOf(address(wallet)), 999);
@@ -81,7 +80,7 @@ contract WalletTest is Test {
         uint256 nonce2 = wallet.getNonce();
         bytes32 digest2 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce2)));
         bytes memory signature2 = getSignature(signer2PK, digest2);
-        IWallet.UserOperation memory op2 = IWallet.UserOperation(to, value, data, gas, signature2, nonce2);
+        IWallet.UserOperation memory op2 = IWallet.UserOperation(address(wallet), to, value, data, gas, signature2, nonce2);
         wallet.executeOp(op2);
         assertEq(demoERC20.balanceOf(recipient), 2);
         assertEq(demoERC20.balanceOf(address(wallet)), 998);
@@ -106,7 +105,7 @@ contract WalletTest is Test {
         vm.stopPrank();
 
         bytes memory signature = abi.encodePacked(signature1, signature2);
-        IWallet.UserOperation memory op = IWallet.UserOperation(to, value, data, gas, signature, nonce);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
         wallet.executeOp(op);
 
         assertEq(demoNFT.ownerOf(1), recipient);
@@ -124,7 +123,7 @@ contract WalletTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        IWallet.UserOperation memory op = IWallet.UserOperation(to, value, data, gas, signature, nonce);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
         vm.expectRevert();
         wallet.executeOp(op);
         vm.stopPrank();
@@ -144,7 +143,7 @@ contract WalletTest is Test {
         address forgedRecipient = address(444);
         bytes memory forgedData = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), forgedRecipient, 1);
 
-        IWallet.UserOperation memory op = IWallet.UserOperation(to, value, forgedData, gas, signature, nonce);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, forgedData, gas, signature, nonce);
         vm.expectRevert();
         wallet.executeOp(op);
         vm.stopPrank();
