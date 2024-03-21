@@ -8,10 +8,12 @@ Imagine we want a wallet that offers different protection mechanisms depending o
 
 ### Part 2:
 
-Now, imagine that we do not want a separate EOA we control to have to execute transactions. The problem is that we need gas in this EOA, which may not be a problem for us, but it's a problem for onboarding new users who don't know what gas is.
+*Introducing a mechanism for removing the need for an EOA. We introduce the “executor” who executes transactions on our behalf, and we refund this actor ETH.*
 
-"We said that the wallet contract’s executeOp method can be called by anyone, so we could just ask someone else with an EOA to call it for us. I will refer to this EOA and the person running it as the 'executor.'"
+How might we improve this situation? What if we don’t want to require that the owner of the smart contract wallet (SCW) needs to have a separate EOA just to execute from. Right now we get the security guarantees, but we are lacking on UX. This is actually worse UX than simply using an EOA.
 
-"Since the executor is the one paying for gas, not many people would be willing to do that for free. So the new plan is that the wallet contract will hold some ETH, and as part of the executor’s call, the wallet will transfer some ETH to the executor to compensate the executor for any gas used."
+In part 1, an EOA that we controlled was calling the `executeOp` function and paying the gas. Since all of the security comes from the signers, it’s okay for anyone to make this call. We can imagine a service called an executor that will offer to make these calls on behalf of people who own SCWs, so the owners do not to manage a separate EOA.
 
-In part 2, we imagine that we are an executer who is given a userOp, and it is our job to execute the transaction by calling `handleOp` on the entryPoint on behalf of the account.
+The role of the executor is to call the `executeOp` function for given userOps. However, doing so costs gas. In part 1, it was okay that the external EOA was paying for gas, since it was an account we owned and we were paying gas for our own transactions. But when we introduce a 3rd party, they likely will not want to execute these ops for free.
+
+The new plan is that the wallet contract will hold some ETH, and as part of the `executeOp` call we will calculate how much gas we spent, and send it back to the caller to compensate them for any gas they used. (how does the wallet get ETH?)

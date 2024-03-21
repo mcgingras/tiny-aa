@@ -6,27 +6,11 @@ import {Wallet} from "../src/Wallet.sol";
 import {IWallet} from "../src/IWallet.sol";
 import {IEntryPoint} from "../src/IEntryPoint.sol";
 import {EntryPoint} from "../src/EntryPoint.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {DemoNFT} from "./helpers/DemoERC721.sol";
+import {DemoERC20} from "./helpers/DemoERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-
-contract DemoERC20 is ERC20 {
-    constructor() ERC20("Demo ERC20", "DEMO20") {}
-
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
-    }
-}
-
-contract DemoNFT is ERC721 {
-    constructor() ERC721("Demo NFT", "DEMO721") {}
-
-    function mint(address to, uint256 tokenId) public {
-        _mint(to, tokenId);
-    }
-}
 
 contract EntryPointTest is Test {
     EntryPoint public entryPoint;
@@ -106,8 +90,19 @@ contract EntryPointTest is Test {
     }
 
 
-    // want to make sure gas accounting is working okay...
     function test_Withdraw() public {
+        vm.deal(signer1, 100 ether);
+        vm.startPrank(signer1);
+        uint256 preDepositBalance = address(signer1).balance;
+        assertEq(preDepositBalance, 100 ether);
 
+        entryPoint.deposit{value: 1 ether}(address(signer1));
+        uint256 postDepositBalance = address(signer1).balance;
+        assertEq(postDepositBalance, 99 ether);
+
+        entryPoint.withdrawTo(payable(signer1));
+        uint256 postWithdrawBalance = address(signer1).balance;
+        assertEq(postWithdrawBalance, 100 ether);
+        vm.stopPrank();
     }
 }
