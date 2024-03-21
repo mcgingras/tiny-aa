@@ -53,6 +53,11 @@ contract WalletTest is Test {
         demoNFT.mint(address(wallet), 1);
         demoERC20 = new DemoERC20();
         demoERC20.mint(address(wallet), 1000);
+
+        // sending eth to the wallet so it can pay gas
+        vm.deal(signer1, 100 ether);
+        vm.prank();
+        wallet.call{value: 1 ether}("");
     }
 
     function getSignature (uint256 pk, bytes32 digest) public returns (bytes memory) {

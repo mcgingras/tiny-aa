@@ -5,14 +5,9 @@ import "./IWallet.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-// something that is not immediately clear to me...
-// If we want to use different authentication methods for different operations
-// how are we supposed to tell which method to use?
-// ---
-// in practice it feels weird that the order of the signatures matter and that we need to submit it all at once
-// maybe you do this offline and the signature is stored, then it gets submitted once we have sufficient signatures?
-// (is this how safe does it?)
-contract Wallet is IWallet {
+/// @title EvilWallet
+/// @notice A wallet that tries to game the system to get free transactions
+contract EvilWallet is IWallet {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
@@ -29,7 +24,6 @@ contract Wallet is IWallet {
 
 
     function executeOp(UserOperation memory op) external {
-        uint256 gasBefore = gasleft();
         bool verified = false;
         bytes32 hash = keccak256(abi.encodePacked(op.to, op.value, op.data, op.gas, op.nonce));
 
@@ -59,7 +53,6 @@ contract Wallet is IWallet {
             }
         }
 
-        // does wallet not get gas refund if we revert here?
         require(verified, "Wallet: signatures invalid outer.");
 
         // check to make sure nonce has not been used
@@ -71,14 +64,9 @@ contract Wallet is IWallet {
         nonce += 1;
 
         (bool success, ) = op.to.call{value: op.value}(op.data);
-        uint256 gasSpent = gasBefore - gasleft();
-        _returnGasSpent(gasSpent);
         require(success, "Wallet: operation failed");
     }
 
-     function _returnGasSpent(uint256 gasSpent) internal {
-        payable(msg.sender).call{value: gasSpent}("");
-    }
 
     function _is721TransferOp(bytes memory data) internal returns (bool) {
         require(data.length >= 4, "Wallet: data too short");
@@ -108,8 +96,4 @@ contract Wallet is IWallet {
         }
         return sliced;
     }
-
-    // this is to make sure the contract can receive ether
-    // Todo: add note on the purpose of this?
-    receive() external payable {}
 }
