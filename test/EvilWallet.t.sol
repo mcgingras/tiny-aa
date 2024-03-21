@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {Test, console} from "forge-std/Test.sol";
-import {Wallet} from "../src/Wallet.sol";
+import {EvilWallet} from "../src/EvilWallet.sol";
 import {IWallet} from "../src/IWallet.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -28,7 +28,7 @@ contract DemoNFT is ERC721 {
 
 
 contract WalletTest is Test {
-    Wallet public wallet;
+    EvilWallet public wallet;
     DemoNFT public demoNFT;
     DemoERC20 public demoERC20;
     address public signer1;
@@ -53,7 +53,7 @@ contract WalletTest is Test {
         address[] memory owners = new address[](2);
         owners[0] = signer1;
         owners[1] = signer2;
-        wallet = new Wallet(owners);
+        wallet = new EvilWallet(owners);
         demoNFT = new DemoNFT();
         demoNFT.mint(address(wallet), 1);
         demoERC20 = new DemoERC20();
