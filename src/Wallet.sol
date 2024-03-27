@@ -27,9 +27,17 @@ contract Wallet is IWallet {
         return nonce;
     }
 
-
+    /// Wraps the executeOp function to return the gas spent to the caller
+    /// Makes it easier to track gas spend across all points where we could revert
     function executeOp(UserOperation memory op) external {
         uint256 gasBefore = gasleft();
+        _executeOp(op);
+        uint256 gasSpent = gasBefore - gasleft();
+        _returnGasSpent(gasSpent);
+    }
+
+
+    function _executeOp(UserOperation memory op) internal {
         bool verified = false;
         bytes32 hash = keccak256(abi.encodePacked(op.to, op.value, op.data, op.gas, op.nonce));
 
@@ -59,7 +67,6 @@ contract Wallet is IWallet {
             }
         }
 
-        // does wallet not get gas refund if we revert here?
         require(verified, "Wallet: signatures invalid outer.");
 
         // check to make sure nonce has not been used
@@ -71,8 +78,6 @@ contract Wallet is IWallet {
         nonce += 1;
 
         (bool success, ) = op.to.call{value: op.value}(op.data);
-        uint256 gasSpent = gasBefore - gasleft();
-        _returnGasSpent(gasSpent);
         require(success, "Wallet: operation failed");
     }
 
@@ -80,7 +85,7 @@ contract Wallet is IWallet {
         payable(msg.sender).call{value: gasSpent}("");
     }
 
-    function _is721TransferOp(bytes memory data) internal returns (bool) {
+    function _is721TransferOp(bytes memory data) internal pure returns (bool) {
         require(data.length >= 4, "Wallet: data too short");
         bytes4 selector;
         assembly {
