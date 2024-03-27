@@ -52,8 +52,6 @@ contract Wallet is IWallet {
         return nonce;
     }
 
-
-
     function validateOp(UserOperation memory op) external returns (bool) {
        bool verified = false;
         bytes32 hash = keccak256(abi.encodePacked(op.to, op.value, op.data, op.gas, op.nonce));
@@ -83,6 +81,7 @@ contract Wallet is IWallet {
                 }
             }
         }
+
         return verified;
     }
 
