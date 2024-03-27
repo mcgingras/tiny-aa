@@ -37,7 +37,7 @@ We notice that Evil wallet is able to trick our executor by simply not refuding 
 
 *Introduces entrypoint as trusted source for simulating*
 
-[enter section about trusted source.]
+The core problem with simulation is we are asking the executor to trust the wallet, and asking the wallet to handle all of its own accounting for how it should be reimbursing gas. A better solution is if we can introduce another player that the execute _can_ trust. We will case this player the entryPoint. The role of the entryPoint is to custody gas to verify that the wallet in question does indeed have gas to pay, then it calls the userOps, then it returns the gas. This way, the entrypoint doesn't have to care about simulation, because the entrypoint is the only thing the executor needs to trust, which it does since its audited. Since it's audited, the executor can trust that it will definitely send the gas back no matter waht happens.
 
 ### Part 3a:
 

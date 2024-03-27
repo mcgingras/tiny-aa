@@ -37,13 +37,23 @@ contract Wallet is IWallet {
 
     /// Modifiers
 
+    function isOwner (address account) public view returns (bool) {
+        for (uint256 i = 0; i < owners.length; i++) {
+            if (account == owners[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function _onlyOwner() internal view {
         //directly from EOA owner, or through the account itself (which gets redirected through execute())
-        require(msg.sender == owner || msg.sender == address(this), "only owner");
+        bool owner = isOwner(msg.sender);
+        require(owner || msg.sender == address(this), "only owner");
     }
 
     function _requireFromEntryPointOrOwner() internal view {
-        require(msg.sender == address(entryPoint()) || msg.sender == owner, "account: not Owner or EntryPoint");
+        require(msg.sender == entryPoint || isOwner(msg.sender), "account: not Owner or EntryPoint");
     }
 
     /// Functions
@@ -86,7 +96,7 @@ contract Wallet is IWallet {
     }
 
     /// Only allow the owner or the trusted entry point to execute operations
-    function executeOp(UserOperation memory op) external _requireFromEntryPointOrOwner() {
+    function executeOp(UserOperation memory op) external requireFromEntryPointOrOwner() {
         // check to make sure nonce has not been used
         if (op.nonce < nonce) {
             revert("Wallet: nonce too low");
