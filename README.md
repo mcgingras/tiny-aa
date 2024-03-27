@@ -45,6 +45,8 @@ The core problem with simulation is we are asking the executor to trust the wall
 
 Okay, so we patch the issue where an evil wallet could simply not return any gas by simulating transactions. Are we done? Unfortunately not, we are prone to an attack by a griefer. Since the executeOp function both handles validate + execution, and we are refunding gas no matter what, we are prone to an attack by a griefer that could submit ops that are invalid, but are still "executed" in the sense that we are able to call executeOp and run them (but have them fail). (We might not that depending on how we implement this, either the executor or the account is on the hook. Either the account refunds after validation to give money back in the case of failure, in which case the executor loses out because they pay gas just for it to fail. Or, we could refund after validation, and if it fails, we refund executor the gas. But now we are in a position where someone can submit invalid ops and drain the accounts entire balance.) Yet, theses ops are still draining our balance, so it's faulty. Maybe a bundler could expose an attack vector here where they are able to suck up all the gas from a bunch of wallets by calling dummy userOps with insanely high gas fees. We need to protect against this.
 
+The solution here is to split validation and execution.
+
 
 ### What else is AA good for?
 

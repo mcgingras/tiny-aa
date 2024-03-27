@@ -51,6 +51,7 @@ contract EntryPointTest is Test {
         vm.deal(signer1, 100 ether);
         vm.prank(signer1);
         address(wallet).call{value: 1 ether}("");
+        entryPoint.deposit{value: 1 ether}(address(wallet));
     }
 
     function getSignature (uint256 pk, bytes32 digest) public returns (bytes memory) {
@@ -69,93 +70,123 @@ contract EntryPointTest is Test {
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
         bytes memory signature = getSignature(signer1PK, digest);
         IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
-        entryPoint.deposit{value: 1 ether}(address(wallet));
         entryPoint.handleOp(op);
         assertEq(demoERC20.balanceOf(recipient), 1);
         assertEq(demoERC20.balanceOf(address(wallet)), 999);
         vm.stopPrank();
     }
 
-    // function test_ExecuteOpSuccessERC721() public {
-    //     uint256 nonce = wallet.getNonce();
-    //     address to = address(demoNFT);
-    //     uint256 value = 0;
-    //     uint256 gas = 0;
-    //     bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), recipient, 1);
+   function test_ExecuteOpSuccessERC721() public {
+        uint256 nonce = wallet.getNonce();
+        address to = address(demoNFT);
+        uint256 value = 0;
+        uint256 gas = 0;
+        bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), recipient, 1);
 
-    //     vm.startPrank(signer1);
-    //     bytes32 digest1 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
-    //     bytes memory signature1 = getSignature(signer1PK, digest1);
-    //     vm.stopPrank();
+        vm.startPrank(signer1);
+        bytes32 digest1 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
+        bytes memory signature1 = getSignature(signer1PK, digest1);
+        vm.stopPrank();
 
-    //     vm.startPrank(signer2);
-    //     bytes32 digest2 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
-    //     bytes memory signature2 = getSignature(signer2PK, digest2);
-    //     vm.stopPrank();
+        vm.startPrank(signer2);
+        bytes32 digest2 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
+        bytes memory signature2 = getSignature(signer2PK, digest2);
+        vm.stopPrank();
 
-    //     bytes memory signature = abi.encodePacked(signature1, signature2);
-    //     IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
-    //     wallet.executeOp(op);
+        bytes memory signature = abi.encodePacked(signature1, signature2);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
 
-    //     assertEq(demoNFT.ownerOf(1), recipient);
-    // }
+        entryPoint.handleOp(op);
 
-    // function test_ExecuteOpFailure_WrongSigner() public {
-    //     (address signer, uint256 pk) = makeAddrAndKey("invalidSigner");
-    //     vm.startPrank(signer);
-    //     uint256 nonce = wallet.getNonce();
-    //     address to = address(demoERC20);
-    //     uint256 value = 0;
-    //     uint256 gas = 0;
-    //     bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", recipient, 1);
-    //     bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
-    //     (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
-    //     bytes memory signature = abi.encodePacked(r, s, v);
+        assertEq(demoNFT.ownerOf(1), recipient);
+    }
 
-    //     IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
-    //     vm.expectRevert();
-    //     wallet.executeOp(op);
-    //     vm.stopPrank();
-    // }
+    function test_ExecuteOpFailure_WrongSigner() public {
+        (address signer, uint256 pk) = makeAddrAndKey("invalidSigner");
+        vm.startPrank(signer1);
+        uint256 nonce = wallet.getNonce();
+        address to = address(demoERC20);
+        uint256 value = 0;
+        uint256 gas = 0;
+        bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", recipient, 1);
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
 
-    // function test_ExecuteOpFailure_InvalidOp() public {
-    //     vm.startPrank(signer1);
-    //     uint256 nonce = wallet.getNonce();
-    //     address to = address(demoNFT);
-    //     uint256 value = 0;
-    //     bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), recipient, 1);
-    //     uint256 gas = 0;
-    //     bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
-    //     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer1PK, digest);
-    //     bytes memory signature = abi.encodePacked(r, s, v);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
 
-    //     address forgedRecipient = address(444);
-    //     bytes memory forgedData = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), forgedRecipient, 1);
+        vm.expectRevert();
+        entryPoint.handleOp(op);
+        vm.stopPrank();
+    }
 
-    //     IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, forgedData, gas, signature, nonce);
-    //     vm.expectRevert();
-    //     wallet.executeOp(op);
-    //     vm.stopPrank();
-    // }
+    function test_ExecuteOpFailure_InvalidOp() public {
+        vm.startPrank(signer1);
+        uint256 nonce = wallet.getNonce();
+        address to = address(demoNFT);
+        uint256 value = 0;
+        bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), recipient, 1);
+        uint256 gas = 0;
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer1PK, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
 
-    // function test_ExecutorPaidGasRefundOnSuccess() public {
-    //     address to = address(demoERC20);
-    //     uint256 value = 0;
-    //     uint256 gas = 0;
-    //     bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", recipient, 1);
-    //     uint256 preExecutionBalance = address(executor).balance;
+        address forgedRecipient = address(444);
+        bytes memory forgedData = abi.encodeWithSignature("transferFrom(address,address,uint256)", address(wallet), forgedRecipient, 1);
 
-    //     vm.startPrank(executor);
-    //     uint256 nonce1 = wallet.getNonce();
-    //     bytes32 digest1 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce1)));
-    //     bytes memory signature1 = getSignature(signer1PK, digest1);
-    //     IWallet.UserOperation memory op1 = IWallet.UserOperation(address(wallet), to, value, data, gas, signature1, nonce1);
-    //     wallet.executeOp(op1);
-    //     assertEq(demoERC20.balanceOf(recipient), 1);
-    //     assertEq(demoERC20.balanceOf(address(wallet)), 999);
+        IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, forgedData, gas, signature, nonce);
+        vm.expectRevert();
+        entryPoint.handleOp(op);
+        vm.stopPrank();
+    }
 
-    //     uint256 postExecutionBalance = address(executor).balance;
-    //     assertGt(postExecutionBalance, preExecutionBalance);
-    //     vm.stopPrank();
-    // }
+    function test_ExecutorPaidGasRefundOnSuccess() public {
+        address to = address(demoERC20);
+        uint256 value = 0;
+        uint256 gas = 0;
+        bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", recipient, 1);
+        uint256 preExecutionBalance = address(executor).balance;
+
+        vm.startPrank(executor);
+        uint256 nonce1 = wallet.getNonce();
+        bytes32 digest1 = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce1)));
+        bytes memory signature1 = getSignature(signer1PK, digest1);
+        IWallet.UserOperation memory op1 = IWallet.UserOperation(address(wallet), to, value, data, gas, signature1, nonce1);
+        entryPoint.handleOp(op1);
+        assertEq(demoERC20.balanceOf(recipient), 1);
+        assertEq(demoERC20.balanceOf(address(wallet)), 999);
+
+        address payable executorAddress = payable(address(executor));
+        entryPoint.withdrawTo(executorAddress);
+        uint256 postExecutionBalance = address(executor).balance;
+        assertGt(postExecutionBalance, preExecutionBalance);
+        vm.stopPrank();
+    }
+
+    function test_GriefWalletOwnerByDrainingDoesNotWork() public {
+        (address signer, uint256 pk) = makeAddrAndKey("invalidSigner");
+        address to = address(demoERC20);
+        uint256 value = 0;
+        uint256 gas = 0;
+        bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", recipient, 1);
+        uint256 preExecutionBalance = address(executor).balance;
+
+        for (uint256 i = 0; i < 10; i++) {
+            vm.startPrank(executor);
+            uint256 nonce = wallet.getNonce();
+            bytes32 digest = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(to,value,data,gas,nonce)));
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+            bytes memory signature = abi.encodePacked(r, s, v);
+            IWallet.UserOperation memory op = IWallet.UserOperation(address(wallet), to, value, data, gas, signature, nonce);
+            vm.expectRevert();
+            entryPoint.handleOp(op);
+            vm.stopPrank();
+        }
+
+        address payable executorAddress = payable(address(executor));
+        entryPoint.withdrawTo(executorAddress);
+        uint256 postExecutionBalance = address(executor).balance;
+        assertEq(postExecutionBalance, preExecutionBalance);
+        vm.stopPrank();
+    }
 }
