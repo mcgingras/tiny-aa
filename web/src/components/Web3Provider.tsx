@@ -9,7 +9,7 @@ const config = createConfig(
   getDefaultConfig({
     chains: [localhost],
     transports: {
-      [localhost.id]: http("localhost:8545"),
+      [localhost.id]: http("http://127.0.0.1:8545"),
     },
     walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
     appName: "tiny-aa",

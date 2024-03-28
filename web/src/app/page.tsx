@@ -1,8 +1,10 @@
-import Mint20 from "@/components/Mint20";
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <Mint20 />
+    <main className="min-h-screen p-24">
+      <h1>Welcome to tiny-aa</h1>
+      <Link href="/1">Part 1: EOA</Link>
     </main>
   );
 }
